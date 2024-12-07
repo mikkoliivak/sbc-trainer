@@ -1,0 +1,7 @@
+(library
+ (name squadBuilder)
+ (libraries csv batteries)
+ (public_name sbctrainer.squadBuilder)
+ (modules SquadBuilder)
+ (instrumentation
+  (backend bisect_ppx)))

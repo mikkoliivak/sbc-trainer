@@ -1,0 +1,4 @@
+(test
+ (name test_sbctrainer)
+ (libraries ounit2 sbctrainer.squadBuilder)
+ (deps (glob_files_rec ../data/*)))
