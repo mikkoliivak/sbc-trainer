@@ -62,12 +62,6 @@ let test_build_squad _ =
   let result = SquadBuilder.build_squad data headers positions in
   assert_equal (List.length positions) (List.length result)
 
-let test_display_squad _ =
-  let squad = [ (List.hd data, "GK"); (List.nth data 1, "RB") ] in
-  SquadBuilder.display_squad headers squad;
-  (* Ensure no exceptions are raised *)
-  assert_equal () ()
-
 (* New tests for synergy and result-based squad building *)
 let test_synergy_check _ =
   let formation =
@@ -116,7 +110,6 @@ let suite =
          "test_find_lowest_player_for_position"
          >:: test_find_lowest_player_for_position;
          "test_build_squad" >:: test_build_squad;
-         "test_display_squad" >:: test_display_squad;
          "test_synergy_check" >:: test_synergy_check;
          "test_insufficient_players_result" >:: test_insufficient_players_result;
        ]

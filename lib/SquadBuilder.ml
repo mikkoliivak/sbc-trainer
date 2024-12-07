@@ -135,15 +135,65 @@ let build_squad_result data headers positions min_league_count =
            ^ " players from the same league."))
   with InsufficientPlayers msg -> Error (NotEnoughPlayers msg)
 
-let display_squad headers squad =
+let display_squad_formation headers squad =
   let name_index = find_index "Name" headers in
   let ovr_index = find_index "OVR" headers in
   let league_index = find_index "League" headers in
-  List.iter
-    (fun (player, assigned_position) ->
-      Printf.printf "Name: %s, Position: %s, OVR: %s, League: %s\n"
-        (List.nth player name_index)
-        (String.uppercase_ascii assigned_position)
-        (List.nth player ovr_index)
-        (List.nth player league_index))
-    squad
+
+  let is_def pos = List.mem pos [ "rb"; "rwb"; "cb"; "lb"; "lwb" ] in
+  let is_mid pos = List.mem pos [ "cdm"; "cm"; "cam"; "rm"; "lm" ] in
+  let is_gk pos = pos = "gk" in
+
+  (* Separate players by role *)
+  let gks, others = List.partition (fun (_, p) -> is_gk p) squad in
+  let defs, others = List.partition (fun (_, p) -> is_def p) others in
+  let mids, fwds = List.partition (fun (_, p) -> is_mid p) others in
+
+  (* Helper to format a player *)
+  let format_player (player, pos) =
+    let name = List.nth player name_index in
+    let ovr = List.nth player ovr_index in
+    let league = List.nth player league_index in
+    Printf.sprintf "%s (%s, OVR: %s, %s)" name
+      (String.uppercase_ascii pos)
+      ovr league
+  in
+
+  let print_line players =
+    if players = [] then ()
+    else begin
+      let line = String.concat "  |  " (List.map format_player players) in
+      Printf.printf "%s\n" line
+    end
+  in
+
+  (* Print lines in a "team-sheet" style *)
+  Printf.printf "================== TEAM SHEET ==================\n";
+  print_line gks;
+  print_line defs;
+  print_line mids;
+  print_line fwds;
+  Printf.printf "================================================\n"
+
+(** Additional filters **)
+let filter_by_position position ~headers p =
+  (* A player passes this filter if they can play at least one of the given
+     positions. For simplicity, assume position is a single string like "GK" or
+     "CM". If you want multiple positions, you could accept a list and check if
+     they can play any. *)
+  let assigned_pos = can_play_position p headers position in
+  assigned_pos <> ""
+
+let filter_by_league league ~headers p =
+  let league_index = find_index "League" headers in
+  String.lowercase_ascii (List.nth p league_index)
+  = String.lowercase_ascii league
+
+let filter_by_club club ~headers p =
+  let club_index = find_index "Club" headers in
+  String.lowercase_ascii (List.nth p club_index) = String.lowercase_ascii club
+
+let filter_by_ovr_range min_ovr max_ovr ~headers p =
+  let ovr_index = find_index "OVR" headers in
+  let ovr = int_of_string (List.nth p ovr_index) in
+  ovr >= min_ovr && ovr <= max_ovr
