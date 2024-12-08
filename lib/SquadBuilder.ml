@@ -145,20 +145,30 @@ let display_squad_formation headers squad =
       ovr league
   in
 
-  let print_line players =
+  let terminal_width = 80 in
+  let print_centered_line players =
     if players = [] then ()
     else begin
-      let line = String.concat "  |  " (List.map format_player players) in
-      Printf.printf "%s\n" line
+      let player_strs = List.map format_player players in
+      let line = String.concat " | " player_strs in
+      let line_len = String.length line in
+      let padding = max 0 ((terminal_width - line_len) / 2) in
+      let spaces = String.make padding ' ' in
+      Printf.printf "%s%s\n" spaces line
     end
   in
 
-  Printf.printf "================== TEAM SHEET ==================\n";
-  print_line gks;
-  print_line defs;
-  print_line mids;
-  print_line fwds;
-  Printf.printf "================================================\n"
+  let line_sep = String.make terminal_width '=' in
+  Printf.printf "%s\n" line_sep;
+  Printf.printf "%*s\n" ((terminal_width / 2) + 5) "TEAM SHEET";
+  Printf.printf "%s\n" line_sep;
+
+  print_centered_line gks;
+  print_centered_line defs;
+  print_centered_line mids;
+  print_centered_line fwds;
+
+  Printf.printf "%s\n" line_sep
 
 let filter_by_league league ~headers p =
   let league_index = find_index "League" headers in

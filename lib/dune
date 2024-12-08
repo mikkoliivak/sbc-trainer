@@ -1,7 +1,6 @@
 (library
- (name squadBuilder)
+ (name sbctrainer)
  (libraries csv batteries)
- (public_name sbctrainer.squadBuilder)
- (modules SquadBuilder)
+ (modules SquadBuilder playerAccess)
  (instrumentation
   (backend bisect_ppx)))

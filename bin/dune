@@ -1,4 +1,4 @@
 (executable
  (public_name sbctrainer)
  (name main)
- (libraries sbctrainer.squadBuilder))
+ (libraries sbctrainer))

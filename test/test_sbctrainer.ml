@@ -1,4 +1,5 @@
 open OUnit2
+open Sbctrainer
 open SquadBuilder
 
 let csv_file = "../data/all_players.csv"
