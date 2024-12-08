@@ -1,6 +1,5 @@
 open SquadBuilder
 
-(* Define formations *)
 let formations =
   [
     ( "4-3-3 (with CDM)",
@@ -23,7 +22,6 @@ let formations =
       [ "GK"; "RB"; "CB"; "CB"; "LB"; "CDM"; "RM"; "CM"; "LM"; "ST"; "ST" ] );
   ]
 
-(* A helper function to read 'y'/'n' answers *)
 let ask_yes_no question =
   Printf.printf "%s (y/n): " question;
   let rec loop () =
@@ -41,16 +39,13 @@ let () =
   let headers, data = SquadBuilder.load_csv csv_file in
 
   let rec main_loop () =
-    (* Start building a list of filters based on user input *)
     let filters = ref [] in
 
-    (* Ask about nation filter *)
     if ask_yes_no "Do you want to filter by nation?" then (
       Printf.printf "Enter the nation: ";
       let nation = read_line () in
       filters := filter_by_nation nation :: !filters);
 
-    (* Ask about OVR range filter *)
     if ask_yes_no "Do you want to filter by OVR range?" then (
       Printf.printf "Enter minimum OVR: ";
       let min_ovr = read_int () in
@@ -58,32 +53,21 @@ let () =
       let max_ovr = read_int () in
       filters := filter_by_ovr_range min_ovr max_ovr :: !filters);
 
-    (* Ask about position filter *)
-    if ask_yes_no "Do you want to filter by position?" then (
-      Printf.printf "Enter the position: ";
-      let pos = read_line () in
-      filters := filter_by_position pos :: !filters);
-
-    (* Ask about league filter *)
     if ask_yes_no "Do you want to filter by league?" then (
       Printf.printf "Enter the league: ";
       let league = read_line () in
       filters := filter_by_league league :: !filters);
 
-    (* Ask about club filter *)
     if ask_yes_no "Do you want to filter by club?" then (
       Printf.printf "Enter the club: ";
       let club = read_line () in
       filters := filter_by_club club :: !filters);
 
-    (* Now that we have all chosen filters, apply them *)
     let filtered_data = apply_filters !filters headers data in
 
-    (* Ask for synergy requirement *)
     Printf.printf "Minimum number of players from the same league for synergy: ";
     let min_league_count = read_int () in
 
-    (* Ask which formation *)
     Printf.printf "Choose a formation:\n";
     List.iteri
       (fun i (name, _) -> Printf.printf "%d. %s\n" (i + 1) name)
@@ -101,16 +85,13 @@ let () =
     | Ok squad ->
         Printf.printf "\nLowest-Rated Squad with chosen filters:\n\n";
         display_squad_formation headers squad;
-        (* Ask if they want to build another squad *)
         if ask_yes_no "Do you want to build another squad?" then main_loop ()
         else Printf.printf "Goodbye!\n"
     | Error err ->
         Printf.printf "Error: %s\n" (pp_error err);
-        (* Ask if they want to build another squad even after error *)
         if ask_yes_no "Do you want to try building another squad?" then
           main_loop ()
         else Printf.printf "Goodbye!\n"
   in
 
-  (* Start the loop *)
   main_loop ()

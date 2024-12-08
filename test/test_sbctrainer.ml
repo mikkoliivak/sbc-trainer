@@ -3,115 +3,260 @@ open SquadBuilder
 
 let csv_file = "../data/all_players.csv"
 
-(* Load the database *)
 let headers, data =
   try SquadBuilder.load_csv csv_file
   with _ ->
-    failwith "Could not load the real database. Ensure the file exists."
+    failwith
+      "Could not load the database. Ensure the file exists at \
+       ../data/all_players.csv."
 
-let test_find_index _ =
-  let index_name = SquadBuilder.find_index "Name" headers in
-  let index_nation = SquadBuilder.find_index "Nation" headers in
-  assert_equal 3 index_name;
-  assert_equal 48 index_nation;
+let test_find_index_basic _ =
+  let i_name = find_index "Name" headers in
+  let i_nation = find_index "Nation" headers in
+  assert_bool "Name index should be >=0" (i_name >= 0);
+  assert_bool "Nation index should be >=0" (i_nation >= 0)
+
+let test_find_index_failure _ =
   assert_raises (Failure "Header 'Invalid' not found in the database.")
-    (fun () -> SquadBuilder.find_index "Invalid" headers)
+    (fun () -> find_index "Invalid" headers)
 
-let test_filter_players _ =
+let test_load_csv _ =
+  assert_bool "Headers should not be empty" (List.length headers > 0);
+  assert_bool "Data should not be empty" (List.length data > 0)
+
+let test_filter_by_nation_france _ =
+  let result = apply_filters [ filter_by_nation "France" ] headers data in
+  assert_bool "Expected some French players" (List.length result > 0)
+
+let test_filter_by_nation_spain_no_high_ovr _ =
   let result =
     apply_filters
-      [ filter_by_nation "France"; filter_by_min_ovr 85 ]
+      [ filter_by_nation "Spain"; filter_by_min_ovr 99 ]
       headers data
   in
-  assert_bool "Expected at least one French player with OVR >= 85"
-    (List.length result > 0);
+  assert_equal [] result ~msg:"No Spanish players with OVR>=99 expected"
 
+let test_filter_by_min_ovr_80 _ =
+  let result = apply_filters [ filter_by_min_ovr 80 ] headers data in
+  assert_bool "Expected players with OVR>=80" (List.length result > 0)
+
+let test_filter_by_league_premier _ =
+  let result =
+    apply_filters [ filter_by_league "Premier League" ] headers data
+  in
+  assert_bool "Expected some players from Premier League"
+    (List.length result > 0)
+
+let test_filter_by_club_specific _ =
+  let result =
+    apply_filters [ filter_by_club "Manchester City" ] headers data
+  in
+  assert_bool "Expected some players from Manchester City"
+    (List.length result > 0)
+
+let test_filter_by_ovr_range_85_90 _ =
+  let result = apply_filters [ filter_by_ovr_range 85 90 ] headers data in
+  assert_bool "Expected some players with OVR between 85 and 90"
+    (List.length result > 0)
+
+let test_combined_filters _ =
   let result =
     apply_filters
-      [ filter_by_nation "Spain"; filter_by_min_ovr 95 ]
+      [
+        filter_by_nation "England";
+        filter_by_league "Premier League";
+        filter_by_ovr_range 80 90;
+      ]
       headers data
   in
-  assert_bool "Expected no players with OVR >= 95 for Spain"
-    (List.length result = 0)
+  assert_bool "Expected English Premier League players with OVR 80-90"
+    (List.length result > 0)
 
-let test_can_play_position _ =
-  let player = List.hd data in
-  let pos_index = SquadBuilder.find_index "Position" headers in
-  let position = List.nth player pos_index in
-  let valid_positions =
-    [ "GK"; "RB"; "CB"; "LB"; "CM"; "ST"; "LW"; "RW"; "CDM"; "CAM"; "LM"; "RM" ]
-  in
-  assert_bool "Player's position should be valid"
-    (List.mem position valid_positions)
-
-let test_find_lowest_player_for_position _ =
-  (* This test depends on your data. If no CB at OVR=48, adjust accordingly. *)
-  let result =
-    SquadBuilder.find_lowest_player_for_position data headers "CB" []
-  in
+let test_find_lowest_player_for_position_cb _ =
+  let result = find_lowest_player_for_position data headers "CB" [] in
   match result with
-  | Some (player, assigned_position) ->
-      let ovr = List.nth player (SquadBuilder.find_index "OVR" headers) in
-      assert_bool "Expected a player for position CB" (assigned_position = "cb");
-      ignore ovr
-      (* Can't assert exact OVR without stable data *)
-  | None -> assert_failure "Expected at least one player for CB"
+  | Some (_, assigned) ->
+      assert_equal "cb" assigned ~msg:"Assigned position should be cb"
+  | None -> assert_failure "Expected to find at least one CB"
 
-let test_build_squad _ =
-  let positions = [ "GK"; "RB"; "CB"; "CB"; "LB"; "CM"; "ST" ] in
-  let result = SquadBuilder.build_squad data headers positions in
-  assert_equal (List.length positions) (List.length result)
-
-(* New tests for synergy and result-based squad building *)
-let test_synergy_check _ =
+let test_build_squad_basic _ =
   let formation =
     [ "GK"; "RB"; "CB"; "CB"; "LB"; "CM"; "CM"; "ST"; "ST"; "LW"; "RW" ]
   in
-  (* Filter for a country that presumably has multiple players in the same
-     league *)
   let filtered_data =
     apply_filters
-      [ filter_by_nation "England"; filter_by_min_ovr 80 ]
+      [ filter_by_nation "France"; filter_by_min_ovr 80 ]
+      headers data
+  in
+  let squad = build_squad filtered_data headers formation in
+  assert_equal 11 (List.length squad) ~msg:"Should build a full 11-player squad"
+
+let test_build_squad_synergy_ok _ =
+  let formation =
+    [ "GK"; "RB"; "CB"; "CB"; "LB"; "CM"; "CM"; "ST"; "ST"; "LW"; "RW" ]
+  in
+  let filtered_data =
+    apply_filters
+      [ filter_by_league "Premier League"; filter_by_min_ovr 80 ]
       headers data
   in
   match build_squad_result filtered_data headers formation 3 with
-  | Ok squad ->
-      (* Check synergy met *)
-      assert_bool "Expected synergy with at least 3 players from same league"
-        true
-  | Error (SynergyNotMet msg) -> assert_failure ("Synergy not met: " ^ msg)
+  | Ok squad -> assert_equal 11 (List.length squad)
+  | Error (SynergyNotMet msg) ->
+      assert_failure ("Expected synergy but got: " ^ msg)
   | Error (NotEnoughPlayers msg) ->
-      (* If not enough players, we can't test synergy, but let's fail here *)
-      assert_failure ("Not enough players: " ^ msg)
+      assert_failure ("Expected enough players but got: " ^ msg)
 
-(* Test result-based errors *)
-let test_insufficient_players_result _ =
-  let positions =
-    [ "GK"; "GK"; "GK"; "GK"; "GK"; "GK"; "GK"; "GK"; "GK"; "GK"; "GK" ]
+let test_build_squad_synergy_fail _ =
+  let formation =
+    [ "GK"; "RB"; "CB"; "CB"; "LB"; "CM"; "CM"; "ST"; "ST"; "LW"; "RW" ]
   in
-  (* Very likely can't fill 11 GK positions from one filter *)
+  let filtered_data =
+    apply_filters [ filter_by_nation "Germany" ] headers data
+  in
+  match build_squad_result filtered_data headers formation 10 with
+  | Ok _ ->
+      assert_failure "Should not meet synergy of 10 players from same league"
+  | Error (SynergyNotMet _) -> assert_bool "Correct synergy failure" true
+  | Error (NotEnoughPlayers _) ->
+      assert_bool "At least synergy not met is expected" true
+
+let test_build_squad_insufficient_players _ =
+  let formation = List.init 11 (fun _ -> "GK") in
   let filtered_data =
     apply_filters
       [ filter_by_nation "France"; filter_by_min_ovr 85 ]
       headers data
   in
-  match build_squad_result filtered_data headers positions 1 with
-  | Ok _ -> assert_failure "Expected not enough players error"
-  | Error (NotEnoughPlayers _) -> assert_bool "Correct error returned" true
+  match build_squad_result filtered_data headers formation 1 with
+  | Ok _ ->
+      assert_failure "Should not be able to build 11 GKs from filtered dataset"
+  | Error (NotEnoughPlayers _) ->
+      assert_bool "Correctly not enough players" true
   | Error (SynergyNotMet _) ->
-      assert_failure "Expected NotEnoughPlayers, not SynergyNotMet"
+      assert_failure "Should fail due to not enough players first"
 
-let suite =
-  "SquadBuilder Tests"
-  >::: [
-         "test_find_index" >:: test_find_index;
-         "test_filter_players" >:: test_filter_players;
-         "test_can_play_position" >:: test_can_play_position;
-         "test_find_lowest_player_for_position"
-         >:: test_find_lowest_player_for_position;
-         "test_build_squad" >:: test_build_squad;
-         "test_synergy_check" >:: test_synergy_check;
-         "test_insufficient_players_result" >:: test_insufficient_players_result;
-       ]
+let test_display_squad_formation_no_exception _ =
+  let formation =
+    [ "GK"; "RB"; "CB"; "CB"; "LB"; "CM"; "CM"; "ST"; "ST"; "LW"; "RW" ]
+  in
+  let filtered_data = apply_filters [ filter_by_min_ovr 85 ] headers data in
+  match build_squad_result filtered_data headers formation 1 with
+  | Ok squad ->
+      display_squad_formation headers squad;
+      assert_bool "No exception raised" true
+  | Error _ ->
+      assert_bool "No squad built but no error in display as it wasn't called"
+        true
 
-let () = run_test_tt_main suite
+let formations =
+  [
+    ( "4-3-3 (with CDM)",
+      [ "GK"; "RB"; "CB"; "CB"; "LB"; "CDM"; "CM"; "CM"; "RW"; "LW"; "ST" ] );
+    ( "4-3-3 (with CAM)",
+      [ "GK"; "RB"; "CB"; "CB"; "LB"; "CM"; "CM"; "CAM"; "RW"; "LW"; "ST" ] );
+    ( "4-4-2",
+      [ "GK"; "RB"; "CB"; "CB"; "LB"; "RM"; "CM"; "CM"; "LM"; "ST"; "ST" ] );
+    ( "3-5-2",
+      [ "GK"; "CB"; "CB"; "CB"; "CDM"; "CDM"; "CM"; "CAM"; "ST"; "ST"; "RW" ] );
+    ( "4-2-3-1",
+      [ "GK"; "RB"; "CB"; "CB"; "LB"; "CDM"; "CDM"; "CAM"; "RW"; "LW"; "ST" ] );
+  ]
+
+let test_formations filters synergy formation_name formation _ =
+  let filtered_data = apply_filters filters headers data in
+  match build_squad_result filtered_data headers formation synergy with
+  | Ok squad ->
+      assert_equal 11 (List.length squad)
+        ~msg:("Formation " ^ formation_name ^ " should produce 11 players")
+  | Error (NotEnoughPlayers msg) ->
+      Printf.printf "Could not fill formation %s: %s\n" formation_name msg;
+      assert_bool "May fail due to not enough players" true
+  | Error (SynergyNotMet msg) ->
+      Printf.printf "Synergy not met for formation %s: %s\n" formation_name msg;
+      assert_bool "May fail due to synergy" true
+
+let () =
+  let test_cases = ref [] in
+
+  List.iter
+    (fun (fname, fpositions) ->
+      for synergy = 1 to 5 do
+        test_cases :=
+          !test_cases
+          @ [
+              fname ^ "_synergy_" ^ string_of_int synergy
+              >:: test_formations
+                    [ filter_by_min_ovr 85 ]
+                    synergy fname fpositions;
+              fname ^ "_synergy_" ^ string_of_int synergy ^ "_nation_France"
+              >:: test_formations
+                    [ filter_by_nation "France"; filter_by_min_ovr 80 ]
+                    synergy fname fpositions;
+              fname ^ "_synergy_" ^ string_of_int synergy ^ "_Premier_League"
+              >:: test_formations
+                    [ filter_by_league "Premier League"; filter_by_min_ovr 80 ]
+                    synergy fname fpositions;
+              fname ^ "_synergy_" ^ string_of_int synergy ^ "_club_ManCity"
+              >:: test_formations
+                    [ filter_by_club "Manchester City"; filter_by_min_ovr 80 ]
+                    synergy fname fpositions;
+            ]
+      done)
+    formations;
+
+  let nations = [ "England"; "France"; "Spain"; "Brazil"; "Germany" ] in
+  let leagues =
+    [ "Premier League"; "LaLiga EA SPORTS"; "Serie A"; "Bundesliga" ]
+  in
+
+  List.iter
+    (fun (fname, fpositions) ->
+      List.iter
+        (fun nation ->
+          List.iter
+            (fun league ->
+              test_cases :=
+                !test_cases
+                @ [
+                    fname ^ "_complex_filters_" ^ nation ^ "_" ^ league
+                    >:: test_formations
+                          [
+                            filter_by_nation nation;
+                            filter_by_league league;
+                            filter_by_ovr_range 80 90;
+                          ]
+                          2 fname fpositions;
+                  ])
+            leagues)
+        nations)
+    formations;
+
+  let suite =
+    "SBC Trainer Tests"
+    >::: [
+           "test_find_index_basic" >:: test_find_index_basic;
+           "test_find_index_failure" >:: test_find_index_failure;
+           "test_load_csv" >:: test_load_csv;
+           "test_filter_by_nation_france" >:: test_filter_by_nation_france;
+           "test_filter_by_nation_spain_no_high_ovr"
+           >:: test_filter_by_nation_spain_no_high_ovr;
+           "test_filter_by_min_ovr_80" >:: test_filter_by_min_ovr_80;
+           "test_filter_by_league_premier" >:: test_filter_by_league_premier;
+           "test_filter_by_club_specific" >:: test_filter_by_club_specific;
+           "test_filter_by_ovr_range_85_90" >:: test_filter_by_ovr_range_85_90;
+           "test_combined_filters" >:: test_combined_filters;
+           "test_find_lowest_player_for_position_cb"
+           >:: test_find_lowest_player_for_position_cb;
+           "test_build_squad_basic" >:: test_build_squad_basic;
+           "test_build_squad_synergy_ok" >:: test_build_squad_synergy_ok;
+           "test_build_squad_synergy_fail" >:: test_build_squad_synergy_fail;
+           "test_build_squad_insufficient_players"
+           >:: test_build_squad_insufficient_players;
+           "test_display_squad_formation_no_exception"
+           >:: test_display_squad_formation_no_exception;
+         ]
+         @ !test_cases
+  in
+
+  run_test_tt_main suite

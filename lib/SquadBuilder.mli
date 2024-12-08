@@ -39,10 +39,6 @@ val filter_by_min_ovr : int -> headers:string list -> player -> bool
 (** [filter_by_min_ovr min_ovr ~headers player] returns true if [player]'s OVR
     >= [min_ovr]. *)
 
-val filter_by_position : string -> headers:string list -> player -> bool
-(** [filter_by_position position ~headers player] returns true if [player] can
-    play [position]. *)
-
 val filter_by_league : string -> headers:string list -> player -> bool
 (** [filter_by_league league ~headers player] returns true if [player]'s league
     matches [league]. *)
