@@ -114,19 +114,38 @@ let rec build_squad_interactively headers data =
 
   let filtered_data = apply_filters !filters headers data in
 
-  Printf.printf "Minimum number of players from the same league for synergy: ";
-  let min_league_count = read_int () in
-
-  Printf.printf "Choose a formation:\n";
-  List.iteri
-    (fun i (name, _) -> Printf.printf "%d. %s\n" (i + 1) name)
-    formations;
-  let choice = read_int () in
-  let formation =
-    if choice >= 1 && choice <= List.length formations then
-      snd (List.nth formations (choice - 1))
-    else failwith "Invalid formation choice."
+  let rec get_min_league_count () =
+    Printf.printf "Minimum number of players from the same league for synergy: ";
+    match read_line () with
+    | "" -> get_min_league_count ()
+    | input -> (
+        match int_of_string_opt input with
+        | None ->
+            Printf.printf "Invalid input. Please enter a valid number.\n";
+            get_min_league_count ()
+        | Some n -> n)
   in
+  let min_league_count = get_min_league_count () in
+
+  let rec get_formation_choice () =
+    Printf.printf "Choose a formation:\n";
+    List.iteri
+      (fun i (name, _) -> Printf.printf "%d. %s\n" (i + 1) name)
+      formations;
+    match read_line () with
+    | "" -> get_formation_choice ()
+    | input -> (
+        match int_of_string_opt input with
+        | None ->
+            Printf.printf "Invalid input. Please enter a valid number.\n";
+            get_formation_choice ()
+        | Some n when n >= 1 && n <= List.length formations ->
+            snd (List.nth formations (n - 1))
+        | _ ->
+            Printf.printf "Invalid formation choice.\n";
+            get_formation_choice ())
+  in
+  let formation = get_formation_choice () in
 
   match build_squad_result filtered_data headers formation min_league_count with
   | Ok squad ->
@@ -214,26 +233,26 @@ let rec main_menu headers data csv_file =
   (* New Option *)
   Printf.printf "4. Quit\n";
   Printf.printf "Enter your choice: ";
-  let choice =
-    try int_of_string (read_line ())
-    with Failure _ ->
-      Printf.printf "Invalid input.\n";
-      0
-  in
-  match choice with
-  | 1 ->
-      build_squad_interactively headers data;
-      main_menu headers data csv_file
-  | 2 ->
-      search_for_player csv_file;
-      main_menu headers data csv_file
-  | 3 ->
-      search_for_team_sheet headers data;
-      main_menu headers data csv_file
-  | 4 -> Printf.printf "Goodbye!\n"
-  | _ ->
-      Printf.printf "Invalid choice.\n";
-      main_menu headers data csv_file
+  match read_line () with
+  | "" -> main_menu headers data csv_file
+  | input -> (
+      match int_of_string_opt input with
+      | None ->
+          Printf.printf "Invalid input. Please enter a valid number.\n";
+          main_menu headers data csv_file
+      | Some 1 ->
+          build_squad_interactively headers data;
+          main_menu headers data csv_file
+      | Some 2 ->
+          search_for_player csv_file;
+          main_menu headers data csv_file
+      | Some 3 ->
+          search_for_team_sheet headers data;
+          main_menu headers data csv_file
+      | Some 4 -> Printf.printf "Goodbye!\n"
+      | Some _ ->
+          Printf.printf "Invalid choice.\n";
+          main_menu headers data csv_file)
 
 let () =
   let csv_file = "data/all_players.csv" in
