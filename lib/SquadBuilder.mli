@@ -29,8 +29,6 @@ val apply_filters :
 (** [apply_filters filters headers data] applies a list of filters to the player
     data. Only players passing all filters are included in the result. *)
 
-(** Filters **)
-
 val filter_by_nation : string -> headers:string list -> player -> bool
 (** [filter_by_nation nation ~headers player] returns true if [player]'s nation
     matches [nation]. *)
@@ -50,8 +48,6 @@ val filter_by_club : string -> headers:string list -> player -> bool
 val filter_by_ovr_range : int -> int -> headers:string list -> player -> bool
 (** [filter_by_ovr_range min_ovr max_ovr ~headers player] returns true if
     [player]'s OVR is between [min_ovr] and [max_ovr]. *)
-
-(** Squad Building **)
 
 val can_play_position : player -> string list -> string -> string
 (** [can_play_position player headers position] returns the position string if
@@ -93,9 +89,13 @@ val build_squad_result :
     and also checks if there's at least [min_league_count] players from the same
     league. Returns Ok squad or Error if not possible. *)
 
-(** Display **)
-
 val display_squad_formation : string list -> (player * string) list -> unit
 (** [display_squad_formation headers squad] prints the squad in a team-sheet
     style formation, grouping them by position lines (GK, Defense, Midfield,
     Attack). *)
+
+val filter_by_club : string -> headers:string list -> player -> bool
+(** [filter_by_club] filters the csv by their club header. *)
+
+val filter_by_nation : string -> headers:string list -> player -> bool
+(** [filter_by_nation] filters the csv by their nation header. *)

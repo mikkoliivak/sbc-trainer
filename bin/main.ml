@@ -141,11 +141,78 @@ let rec build_squad_interactively headers data =
         build_squad_interactively headers data
       else Printf.printf "Returning to main menu.\n"
 
+let rec search_for_team_sheet headers data =
+  Printf.printf
+    "Enter the name of the team (club or national team) to search for: ";
+  let team_name = read_line () in
+
+  (* Custom player comparator by Name *)
+  let compare_players p1 p2 =
+    String.compare
+      (List.nth p1 (SquadBuilder.find_index "Name" headers))
+      (List.nth p2 (SquadBuilder.find_index "Name" headers))
+  in
+
+  (* Filter for club players *)
+  let players_from_club =
+    SquadBuilder.apply_filters
+      [ SquadBuilder.filter_by_club team_name ]
+      headers data
+  in
+
+  (* Filter for nation players *)
+  let players_from_nation =
+    SquadBuilder.apply_filters
+      [ SquadBuilder.filter_by_nation team_name ]
+      headers data
+  in
+
+  (* Combine and remove duplicates from the player list *)
+  let team_players = players_from_club @ players_from_nation in
+
+  (* Sort and remove duplicates from the combined list of players *)
+  let unique_players = List.sort_uniq compare_players team_players in
+
+  (* Sort players by OVR descending *)
+  let ovr_index = SquadBuilder.find_index "OVR" headers in
+  let sorted_players =
+    List.sort
+      (fun p1 p2 ->
+        let ovr1 = int_of_string (List.nth p1 ovr_index) in
+        let ovr2 = int_of_string (List.nth p2 ovr_index) in
+        if ovr2 > ovr1 then 1 else if ovr2 < ovr1 then -1 else 0)
+      unique_players
+  in
+
+  (* Take only the top 20 players *)
+  let top_20_players =
+    List.fold_left
+      (fun acc player -> if List.length acc < 20 then player :: acc else acc)
+      [] sorted_players
+    |> List.rev
+  in
+
+  (* If no players are found, show an error and prompt to search again *)
+  if List.length top_20_players = 0 then (
+    Printf.printf "No players found for the team '%s'.\n" team_name;
+    if ask_yes_no "Do you want to search for another team sheet?" then
+      search_for_team_sheet headers data
+    else Printf.printf "Returning to main menu.\n")
+  else (
+    Printf.printf "\nTeam Sheet for '%s' (Top 20 Highest OVR):\n\n" team_name;
+    SquadBuilder.display_squad_formation headers
+      (List.map (fun p -> (p, "")) top_20_players);
+    if ask_yes_no "Do you want to search for another team sheet?" then
+      search_for_team_sheet headers data
+    else Printf.printf "Returning to main menu.\n")
+
 let rec main_menu headers data csv_file =
   Printf.printf "\n========== MAIN MENU ==========\n";
   Printf.printf "1. Build a Squad\n";
   Printf.printf "2. Search for a Player\n";
-  Printf.printf "3. Quit\n";
+  Printf.printf "3. Search for a Team Sheet\n";
+  (* New Option *)
+  Printf.printf "4. Quit\n";
   Printf.printf "Enter your choice: ";
   let choice =
     try int_of_string (read_line ())
@@ -160,7 +227,10 @@ let rec main_menu headers data csv_file =
   | 2 ->
       search_for_player csv_file;
       main_menu headers data csv_file
-  | 3 -> Printf.printf "Goodbye!\n"
+  | 3 ->
+      search_for_team_sheet headers data;
+      main_menu headers data csv_file
+  | 4 -> Printf.printf "Goodbye!\n"
   | _ ->
       Printf.printf "Invalid choice.\n";
       main_menu headers data csv_file
