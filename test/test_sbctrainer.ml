@@ -250,6 +250,109 @@ let test_very_short_input _ =
   assert_bool "Short input like 'Li' should still suggest 'Lionel Messi'"
     (List.length result > 0 && List.mem "Lionel Messi" result)
 
+let test_find_index _ =
+  let headers = [ "ID"; "Name"; "Nation"; "Team"; "OVR" ] in
+  assert_equal 1 (find_index "Name" headers);
+  assert_equal 4 (find_index "OVR" headers);
+  assert_equal 0 (find_index "ID" headers)
+
+let test_contains_substring _ =
+  assert_bool "Expecting 'world' to be in 'hello world'"
+    (contains_substring "hello world" "world");
+  assert_bool "Expecting 'lo' to be in 'hello'"
+    (contains_substring "hello" "lo");
+  assert_bool "Expecting 'hello' to be in 'hello'"
+    (contains_substring "hello" "hello");
+  assert_bool "Not expecting 'world' to be in 'hello'"
+    (not (contains_substring "hello" "world"));
+  assert_bool "Empty string should not be in 'hello'"
+    (not (contains_substring "hello" ""));
+  assert_bool "Empty string is not a substring of an empty string"
+    (not (contains_substring "" ""))
+
+let test_get_player_attributes _ =
+  let name, ovr, pac, sho, pas, dri, def, phy =
+    get_player_attributes csv_file "Lionel Messi"
+  in
+  assert_equal "Lionel Messi" name ~msg:"Name should be 'Lionel Messi'";
+  assert_bool "OVR should be an integer string"
+    (try
+       ignore (int_of_string ovr);
+       true
+     with _ -> false);
+  assert_bool "PAC should be an integer string"
+    (try
+       ignore (int_of_string pac);
+       true
+     with _ -> false);
+  assert_bool "SHO should be an integer string"
+    (try
+       ignore (int_of_string sho);
+       true
+     with _ -> false);
+  assert_bool "PAS should be an integer string"
+    (try
+       ignore (int_of_string pas);
+       true
+     with _ -> false);
+  assert_bool "DRI should be an integer string"
+    (try
+       ignore (int_of_string dri);
+       true
+     with _ -> false);
+  assert_bool "DEF should be an integer string"
+    (try
+       ignore (int_of_string def);
+       true
+     with _ -> false);
+  assert_bool "PHY should be an integer string"
+    (try
+       ignore (int_of_string phy);
+       true
+     with _ -> false)
+
+let test_get_player_attributes_known_player _ =
+  let name, ovr, pac, sho, pas, dri, def, phy =
+    get_player_attributes csv_file "Cristiano Ronaldo"
+  in
+  assert_equal "Cristiano Ronaldo" name
+    ~msg:"Name should be 'Cristiano Ronaldo'";
+  assert_bool "OVR should be an integer string"
+    (try
+       ignore (int_of_string ovr);
+       true
+     with _ -> false);
+  assert_bool "PAC should be an integer string"
+    (try
+       ignore (int_of_string pac);
+       true
+     with _ -> false);
+  assert_bool "SHO should be an integer string"
+    (try
+       ignore (int_of_string sho);
+       true
+     with _ -> false);
+  assert_bool "PAS should be an integer string"
+    (try
+       ignore (int_of_string pas);
+       true
+     with _ -> false);
+  assert_bool "DRI should be an integer string"
+    (try
+       ignore (int_of_string dri);
+       true
+     with _ -> false);
+  assert_bool "DEF should be an integer string"
+    (try
+       ignore (int_of_string def);
+       true
+     with _ -> false);
+  assert_bool "PHY should be an integer string"
+    (try
+       ignore (int_of_string phy);
+       true
+     with _ -> false)
+
 let test_search_for_team_sheet_france _ =
   let team_name = "France" in
   let players_from_club =
@@ -425,6 +528,11 @@ let () =
            >:: test_search_for_team_sheet_duplicates;
            "test_search_for_team_sheet_no_results"
            >:: test_search_for_team_sheet_no_results;
+           "test_find_index" >:: test_find_index;
+           "test_contains_substring" >:: test_contains_substring;
+           "test_get_player_attributes" >:: test_get_player_attributes;
+           "test_get_player_attributes_known_player"
+           >:: test_get_player_attributes_known_player;
          ]
          @ !test_cases
   in
