@@ -13,3 +13,7 @@ val get_player_attributes :
     the CSV file [csv_file]. If found, returns a tuple containing (Name, OVR,
     PAC, SHO, PAS, DRI, DEF, PHY). If the player is not found, raises
     [PlayerNotFound]. *)
+
+val suggest_similar_names : string -> string -> string list
+(** [suggest_similar_names csv_file player_name] returns a list of player names
+    that are similar to [player_name] in the CSV file [csv_file]. *)

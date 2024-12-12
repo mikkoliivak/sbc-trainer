@@ -1,6 +1,7 @@
 open OUnit2
 open Sbctrainer
 open SquadBuilder
+open PlayerAccess
 
 let csv_file = "../data/all_players.csv"
 
@@ -177,6 +178,55 @@ let test_formations filters synergy formation_name formation _ =
       Printf.printf "Synergy not met for formation %s: %s\n" formation_name msg;
       assert_bool "May fail due to synergy" true
 
+let test_no_suggestions _ =
+  let result = suggest_similar_names csv_file "CompletelyUnknownPlayer" in
+  assert_equal [] result
+    ~msg:
+      "No suggestions should be provided for a completely unknown player name"
+
+let test_one_suggestion _ =
+  let result = suggest_similar_names csv_file "Lionwl Messi" in
+  assert_bool
+    "There should be one suggestion for a close misspelling of 'Lionel Messi'"
+    (List.length result = 1 && List.hd result = "Lionel Messi")
+
+let test_multiple_suggestions _ =
+  let result = suggest_similar_names csv_file "Messia" in
+  assert_bool
+    "There should be multiple suggestions for the partial name 'Messia'"
+    (List.length result > 1)
+
+let test_case_insensitivity _ =
+  let result1 = suggest_similar_names csv_file "lionwl messi" in
+  let result2 = suggest_similar_names csv_file "LIONWL MESSI" in
+  assert_equal result1 result2
+    ~msg:
+      "The suggestions should be case-insensitive and return the same results \
+       regardless of input case"
+
+let test_exact_match_does_not_trigger_suggestions _ =
+  let result = suggest_similar_names csv_file "Lionel Messi" in
+  assert_equal [] result ~msg:"An exact match should not return any suggestions"
+
+let test_suggestions_within_distance_2 _ =
+  let result = suggest_similar_names csv_file "Lione Messi" in
+  assert_bool
+    "A name with a small edit distance (e.g., one character off) should have \
+     suggestions"
+    (List.length result > 0)
+
+let test_exact_match_trim_and_case _ =
+  let result = suggest_similar_names csv_file " Lionel Messi " in
+  assert_equal [] result
+    ~msg:"An exact match with extra spaces should not return any suggestions"
+
+let test_multiple_suggestions_with_similar_names _ =
+  let result = suggest_similar_names csv_file "Cris" in
+  assert_bool
+    "There should be multiple suggestions for the partial name 'Cris' if there \
+     are other players like 'Cristiano Ronaldo' and 'Cristhian Pavon'"
+    (List.length result > 1)
+
 let () =
   let test_cases = ref [] in
 
@@ -256,6 +306,17 @@ let () =
            >:: test_build_squad_insufficient_players;
            "test_display_squad_formation_no_exception"
            >:: test_display_squad_formation_no_exception;
+           "test_no_suggestions" >:: test_no_suggestions;
+           "test_one_suggestion" >:: test_one_suggestion;
+           "test_multiple_suggestions" >:: test_multiple_suggestions;
+           "test_case_insensitivity" >:: test_case_insensitivity;
+           "test_exact_match_does_not_trigger_suggestions"
+           >:: test_exact_match_does_not_trigger_suggestions;
+           "test_suggestions_within_distance_2"
+           >:: test_suggestions_within_distance_2;
+           "test_exact_match_trim_and_case" >:: test_exact_match_trim_and_case;
+           "test_multiple_suggestions_with_similar_names"
+           >:: test_multiple_suggestions_with_similar_names;
          ]
          @ !test_cases
   in

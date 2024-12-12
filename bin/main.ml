@@ -37,7 +37,7 @@ let ask_yes_no question =
   in
   loop ()
 
-let search_for_player csv_file =
+let rec search_for_player csv_file =
   print_endline "Enter player name:";
   let player_name = read_line () in
   try
@@ -48,7 +48,47 @@ let search_for_player csv_file =
       "Name: %s, OVR: %s, PAC: %s, SHO: %s, PAS: %s, DRI: %s, DEF: %s, PHY: %s\n"
       name ovr pac sho pas dri def phy
   with
-  | PlayerNotFound msg -> Printf.printf "Error: %s\n" msg
+  | PlayerNotFound msg ->
+      (* Print error message *)
+      Printf.printf "Error: %s\n" msg;
+
+      (* Extract possible suggestions from the message *)
+      (* let suggestions = if String.contains msg ':' then let suggestions_part
+         = String.split_on_char ':' msg |> List.tl |> String.concat ":" in if
+         suggestions_part <> "" then String.split_on_char ',' suggestions_part
+         |> List.map String.trim else [] else [] in *)
+      let suggestions = suggest_similar_names csv_file player_name in
+
+      if suggestions <> [] then (
+        Printf.printf "Did you mean:\n";
+        List.iteri
+          (fun i suggestion -> Printf.printf "%d. %s\n" (i + 1) suggestion)
+          suggestions;
+
+        (* Prompt user to select a player *)
+        Printf.printf
+          "\n\
+           Select a player by entering its corresponding number or press Enter \
+           to continue:\n";
+        match read_line () with
+        | "" -> ()
+        | input -> (
+            try
+              let index = int_of_string input - 1 in
+              if index >= 0 && index < List.length suggestions then
+                let selected_player = List.nth suggestions index in
+                let name, ovr, pac, sho, pas, dri, def, phy =
+                  get_player_attributes csv_file selected_player
+                in
+                Printf.printf
+                  "Name: %s, OVR: %s, PAC: %s, SHO: %s, PAS: %s, DRI: %s, DEF: \
+                   %s, PHY: %s\n"
+                  name ovr pac sho pas dri def phy
+            with _ -> ()));
+
+      if ask_yes_no "Do you want to search for another player?" then
+        search_for_player csv_file
+      else Printf.printf "Returning to main menu.\n"
   | e ->
       Printf.printf "An unexpected error occurred: %s\n" (Printexc.to_string e)
 
@@ -124,8 +164,7 @@ let rec main_menu headers data csv_file =
       main_menu headers data csv_file
   | 2 ->
       search_for_player csv_file;
-      if ask_yes_no "Return to main menu?" then main_menu headers data csv_file
-      else Printf.printf "Goodbye!\n"
+      main_menu headers data csv_file
   | 3 -> Printf.printf "Goodbye!\n"
   | _ ->
       Printf.printf "Invalid choice.\n";
