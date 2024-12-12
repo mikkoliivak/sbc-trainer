@@ -5,6 +5,15 @@ open PlayerAccess
 
 let csv_file = "../data/all_players.csv"
 
+let is_descending lst =
+  match lst with
+  | [] | [ _ ] -> true
+  | hd :: tl ->
+      List.fold_left
+        (fun (is_sorted, prev) curr -> (is_sorted && prev >= curr, curr))
+        (true, hd) tl
+      |> fst
+
 let headers, data =
   try SquadBuilder.load_csv csv_file
   with _ ->
@@ -241,6 +250,83 @@ let test_very_short_input _ =
   assert_bool "Short input like 'Li' should still suggest 'Lionel Messi'"
     (List.length result > 0 && List.mem "Lionel Messi" result)
 
+let test_search_for_team_sheet_france _ =
+  let team_name = "France" in
+  let players_from_club =
+    SquadBuilder.apply_filters
+      [ SquadBuilder.filter_by_club team_name ]
+      headers data
+  in
+  let players_from_nation =
+    SquadBuilder.apply_filters
+      [ SquadBuilder.filter_by_nation team_name ]
+      headers data
+  in
+  let team_players = players_from_club @ players_from_nation in
+  let unique_players = List.sort_uniq compare team_players in
+
+  let ovr_index = SquadBuilder.find_index "OVR" headers in
+  let sorted_players =
+    List.sort
+      (fun p1 p2 ->
+        let ovr1 = int_of_string (List.nth p1 ovr_index) in
+        let ovr2 = int_of_string (List.nth p2 ovr_index) in
+        compare ovr2 ovr1)
+      unique_players
+  in
+
+  let top_20_players =
+    List.rev
+      (List.fold_left
+         (fun acc p -> if List.length acc < 20 then p :: acc else acc)
+         [] sorted_players)
+  in
+  assert_bool "Should return at most 20 players"
+    (List.length top_20_players <= 20);
+
+  let ovr_list =
+    List.map (fun p -> int_of_string (List.nth p ovr_index)) top_20_players
+  in
+  assert_bool "Players should be sorted in descending OVR"
+    (is_descending ovr_list)
+
+let test_search_for_team_sheet_duplicates _ =
+  let team_name = "France" in
+  let players_from_club =
+    SquadBuilder.apply_filters
+      [ SquadBuilder.filter_by_club team_name ]
+      headers data
+  in
+  let players_from_nation =
+    SquadBuilder.apply_filters
+      [ SquadBuilder.filter_by_nation team_name ]
+      headers data
+  in
+  let team_players = players_from_club @ players_from_nation in
+
+  let unique_players = List.sort_uniq compare team_players in
+  assert_equal
+    (List.length unique_players)
+    (List.length (List.sort_uniq compare team_players))
+    ~msg:"Players from club and nation should not have duplicates"
+
+let test_search_for_team_sheet_no_results _ =
+  let team_name = "NonExistentTeam" in
+  let players_from_club =
+    SquadBuilder.apply_filters
+      [ SquadBuilder.filter_by_club team_name ]
+      headers data
+  in
+  let players_from_nation =
+    SquadBuilder.apply_filters
+      [ SquadBuilder.filter_by_nation team_name ]
+      headers data
+  in
+  let team_players = players_from_club @ players_from_nation in
+
+  assert_equal 0 (List.length team_players)
+    ~msg:"No players should be found for a non-existent team"
+
 let () =
   let test_cases = ref [] in
 
@@ -333,6 +419,12 @@ let () =
            "test_input_with_spaces" >:: test_input_with_spaces;
            "test_special_characters_input" >:: test_special_characters_input;
            "test_very_short_input" >:: test_very_short_input;
+           "test_search_for_team_sheet_france"
+           >:: test_search_for_team_sheet_france;
+           "test_search_for_team_sheet_duplicates"
+           >:: test_search_for_team_sheet_duplicates;
+           "test_search_for_team_sheet_no_results"
+           >:: test_search_for_team_sheet_no_results;
          ]
          @ !test_cases
   in
