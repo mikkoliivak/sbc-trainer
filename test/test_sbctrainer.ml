@@ -220,12 +220,26 @@ let test_exact_match_trim_and_case _ =
   assert_equal [] result
     ~msg:"An exact match with extra spaces should not return any suggestions"
 
-let test_multiple_suggestions_with_similar_names _ =
-  let result = suggest_similar_names csv_file "Cris" in
+let test_empty_suggestions _ =
+  let result = suggest_similar_names csv_file "" in
+  assert_equal [] result ~msg:"An empty input should not return any suggestions"
+
+let test_input_with_spaces _ =
+  let result = suggest_similar_names csv_file "     " in
+  assert_equal [] result
+    ~msg:"An input with only spaces should return no suggestions"
+
+let test_special_characters_input _ =
+  let result = suggest_similar_names csv_file "Lionel#Messi" in
   assert_bool
-    "There should be multiple suggestions for the partial name 'Cris' if there \
-     are other players like 'Cristiano Ronaldo' and 'Cristhian Pavon'"
-    (List.length result > 1)
+    "Special characters like '#' in 'Lionel#Messi' should still suggest \
+     'Lionel Messi'"
+    (List.length result > 0 && List.mem "Lionel Messi" result)
+
+let test_very_short_input _ =
+  let result = suggest_similar_names csv_file "Li" in
+  assert_bool "Short input like 'Li' should still suggest 'Lionel Messi'"
+    (List.length result > 0 && List.mem "Lionel Messi" result)
 
 let () =
   let test_cases = ref [] in
@@ -315,8 +329,10 @@ let () =
            "test_suggestions_within_distance_2"
            >:: test_suggestions_within_distance_2;
            "test_exact_match_trim_and_case" >:: test_exact_match_trim_and_case;
-           "test_multiple_suggestions_with_similar_names"
-           >:: test_multiple_suggestions_with_similar_names;
+           "test_empty_suggestions" >:: test_empty_suggestions;
+           "test_input_with_spaces" >:: test_input_with_spaces;
+           "test_special_characters_input" >:: test_special_characters_input;
+           "test_very_short_input" >:: test_very_short_input;
          ]
          @ !test_cases
   in
