@@ -48,26 +48,44 @@ let suggest_similar_names csv_file player_name =
     let headers = List.hd csv in
     let data = List.tl csv in
     let name_index = find_index "Name" headers in
-    List.fold_left
-      (fun acc row ->
-        let player_name_in_db = String.trim (List.nth row name_index) in
-        let lowercase_player_name_in_db =
-          String.lowercase_ascii player_name_in_db
-        in
-        let lowercase_input_name =
-          String.lowercase_ascii (String.trim player_name)
-        in
-        let distance =
-          levenshtein_distance lowercase_input_name lowercase_player_name_in_db
-        in
-        if
-          distance <= 2
-          || contains_substring lowercase_player_name_in_db lowercase_input_name
-        then player_name_in_db :: acc
-        else acc)
-      [] data
-    |> List.rev
-    |> List.sort_uniq String.compare
+
+    let lowercase_input_name =
+      String.lowercase_ascii (String.trim player_name)
+    in
+    let exact_match =
+      List.exists
+        (fun row ->
+          let player_name_in_db = String.trim (List.nth row name_index) in
+          let lowercase_player_name_in_db =
+            String.lowercase_ascii player_name_in_db
+          in
+          lowercase_input_name = lowercase_player_name_in_db)
+        data
+    in
+
+    if exact_match then []
+    else
+      List.fold_left
+        (fun acc row ->
+          let player_name_in_db = String.trim (List.nth row name_index) in
+          let lowercase_player_name_in_db =
+            String.lowercase_ascii player_name_in_db
+          in
+          if lowercase_input_name = lowercase_player_name_in_db then acc
+          else
+            let distance =
+              levenshtein_distance lowercase_input_name
+                lowercase_player_name_in_db
+            in
+            if
+              distance <= 2
+              || contains_substring lowercase_player_name_in_db
+                   lowercase_input_name
+            then player_name_in_db :: acc
+            else acc)
+        [] data
+      |> List.rev
+      |> List.sort_uniq String.compare
   with
   | Sys_error _ -> failwith ("The file '" ^ csv_file ^ "' does not exist.")
   | e -> raise e

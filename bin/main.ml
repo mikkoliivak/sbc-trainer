@@ -46,17 +46,13 @@ let rec search_for_player csv_file =
     in
     Printf.printf
       "Name: %s, OVR: %s, PAC: %s, SHO: %s, PAS: %s, DRI: %s, DEF: %s, PHY: %s\n"
-      name ovr pac sho pas dri def phy
+      name ovr pac sho pas dri def phy;
+    if ask_yes_no "Do you want to search for another player?" then
+      search_for_player csv_file
   with
   | PlayerNotFound msg ->
-      (* Print error message *)
       Printf.printf "Error: %s\n" msg;
 
-      (* Extract possible suggestions from the message *)
-      (* let suggestions = if String.contains msg ':' then let suggestions_part
-         = String.split_on_char ':' msg |> List.tl |> String.concat ":" in if
-         suggestions_part <> "" then String.split_on_char ',' suggestions_part
-         |> List.map String.trim else [] else [] in *)
       let suggestions = suggest_similar_names csv_file player_name in
 
       if suggestions <> [] then (
@@ -65,7 +61,6 @@ let rec search_for_player csv_file =
           (fun i suggestion -> Printf.printf "%d. %s\n" (i + 1) suggestion)
           suggestions;
 
-        (* Prompt user to select a player *)
         Printf.printf
           "\n\
            Select a player by entering its corresponding number or press Enter \
