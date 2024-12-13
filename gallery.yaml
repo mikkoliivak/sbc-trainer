@@ -1,0 +1,34 @@
+---
+# Members of your group.
+group:
+  - name: Daniel Weiner
+    netid: djw342
+  - name: Mikko Liivak
+    netid: mll286
+  - name: Pablo Rodriguez-Russowsky
+    netid: pr435
+# Your PM.
+pm:
+  name: Cyrus Irani
+  netid: cri23
+# Set to false if you don't want your gallery entry to be public.
+publish: true
+# Pithy title
+title: "SBC Trainer"
+# OK if this is a Cornell Github link, but public gallery viewers won't be able to see it.
+git-repo: "https://github.com/mikkoliivak/sbc-trainer"
+# Replace the URL with your own demo video.
+demo-video-url: "https://www.youtube.com/watch?v=t06W9bOF5Pc"
+# Write a short, attention-grabbing description of your project.
+desc: >
+  Our project is an interactive coding tool designed to help users solve Squad 
+  Building Challenges (SBCs) for EA FC 25, the latest installment in EA Sports' 
+  football video game series. SBCs require players to construct squads that meet 
+  specific requirements—like using players from certain nations, leagues, or 
+  clubs—while also managing chemistry rules and budget limits. Our tool leverages 
+  a database of EA FC 25 soccer players and enables users to input filters that 
+  automate and optimize solutions for these challenges. By combining algorithmic 
+  techniques with football strategy, users can efficiently and optimally solve 
+  difficult SBCs. Additionally, the tool provides a robust player search feature, 
+  allowing users to explore the player database with advanced filters to enhance 
+  their overall EA FC 25 experience.
