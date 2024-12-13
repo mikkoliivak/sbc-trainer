@@ -25,6 +25,43 @@ let formations =
       [ "GK"; "RB"; "CB"; "CB"; "LB"; "CDM"; "RM"; "CM"; "LM"; "ST"; "ST" ] );
   ]
 
+let player_career_summary csv_file player_name =
+  let _, _, _, _, _, _, _, _ = get_player_attributes csv_file player_name in
+  let headers, data = SquadBuilder.load_csv csv_file in
+  let team_index = find_index "Team" headers in
+  let position_index = find_index "Position" headers in
+
+  let player_records =
+    List.filter
+      (fun row ->
+        String.lowercase_ascii (List.nth row (find_index "Name" headers))
+        = String.lowercase_ascii player_name)
+      data
+  in
+
+  let career_teams =
+    List.fold_left
+      (fun acc row ->
+        let team = List.nth row team_index in
+        if List.mem team acc then acc else team :: acc)
+      [] player_records
+  in
+
+  let positions_played =
+    List.fold_left
+      (fun acc row ->
+        let pos = List.nth row position_index in
+        if List.mem pos acc then acc else pos :: acc)
+      [] player_records
+  in
+
+  print_endline "";
+  Printf.printf "Career Summary for %s:\n" player_name;
+  print_endline "";
+  Printf.printf "Teams played for: %s\n" (String.concat ", " career_teams);
+  Printf.printf "Positions played: %s\n" (String.concat ", " positions_played);
+  print_endline ""
+
 let ask_yes_no question =
   Printf.printf "%s (y/n): " question;
   let rec loop () =
@@ -47,6 +84,7 @@ let rec search_for_player csv_file =
     Printf.printf
       "Name: %s, OVR: %s, PAC: %s, SHO: %s, PAS: %s, DRI: %s, DEF: %s, PHY: %s\n"
       name ovr pac sho pas dri def phy;
+    player_career_summary csv_file name;
     if ask_yes_no "Do you want to search for another player?" then
       search_for_player csv_file
   with
