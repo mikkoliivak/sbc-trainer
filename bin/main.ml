@@ -298,6 +298,8 @@ let compare_players_menu () =
     | None -> Printf.printf "Unable to compare players.\n"
   with PlayerNotFound msg -> Printf.printf "Error: %s\n" msg
 
+(** [get_filters_from_user ()] prompts the user to apply filters interactively
+    and returns a list of filters to be applied to the player data. *)
 let rec get_filters_from_user () =
   let filters = ref [] in
 
@@ -325,6 +327,9 @@ let rec get_filters_from_user () =
 
   !filters
 
+(** [view_filtered_player_stats_interactively csv_file] allows the user to view
+    statistics for filtered players interactively by applying filters and
+    displaying the count, min OVR, max OVR, and average OVR. *)
 let rec view_filtered_player_stats_interactively csv_file =
   Printf.printf "\n========== FILTERED PLAYER STATISTICS ==========\n";
   Printf.printf
