@@ -26,3 +26,15 @@ val get_player_attributes :
     the CSV file [csv_file]. If found, returns a tuple containing (Name, OVR,
     PAC, SHO, PAS, DRI, DEF, PHY). If the player is not found, raises
     [PlayerNotFound]. *)
+
+val compare_two_players :
+  string ->
+  string ->
+  string ->
+  ((string * string * string * string * string * string * string * string)
+  * (string * string * string * string * string * string * string * string))
+  option
+(** [compare_two_players csv_file player1 player2] compares two players
+    [player1] and [player2] in the CSV file [csv_file]. Returns a tuple of their
+    attributes for comparison. If either player is not found, raises
+    [PlayerNotFound]. *)

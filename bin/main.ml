@@ -225,13 +225,42 @@ let rec search_for_team_sheet headers data =
       search_for_team_sheet headers data
     else Printf.printf "Returning to main menu.\n")
 
+let compare_players_menu () =
+  let csv_file = "data/all_players.csv" in
+  Printf.printf "\n========== PLAYER COMPARISON ==========\n";
+  Printf.printf "Enter the name of the first player: ";
+  let player1 = read_line () in
+  Printf.printf "Enter the name of the second player: ";
+  let player2 = read_line () in
+  try
+    match compare_two_players csv_file player1 player2 with
+    | Some
+        ( (name1, ovr1, pac1, sho1, pas1, dri1, def1, phy1),
+          (name2, ovr2, pac2, sho2, pas2, dri2, def2, phy2) ) ->
+        Printf.printf
+          "\n===================== PLAYER COMPARISON =====================\n";
+        Printf.printf "| Stat       |  %-15s |  %-15s |\n" name1 name2;
+        Printf.printf
+          "------------------------------------------------------------\n";
+        Printf.printf "| OVR        |  %-15s |  %-15s |\n" ovr1 ovr2;
+        Printf.printf "| PAC        |  %-15s |  %-15s |\n" pac1 pac2;
+        Printf.printf "| SHO        |  %-15s |  %-15s |\n" sho1 sho2;
+        Printf.printf "| PAS        |  %-15s |  %-15s |\n" pas1 pas2;
+        Printf.printf "| DRI        |  %-15s |  %-15s |\n" dri1 dri2;
+        Printf.printf "| DEF        |  %-15s |  %-15s |\n" def1 def2;
+        Printf.printf "| PHY        |  %-15s |  %-15s |\n" phy1 phy2;
+        Printf.printf
+          "------------------------------------------------------------\n"
+    | None -> Printf.printf "Unable to compare players.\n"
+  with PlayerNotFound msg -> Printf.printf "Error: %s\n" msg
+
 let rec main_menu headers data csv_file =
   Printf.printf "\n========== MAIN MENU ==========\n";
   Printf.printf "1. Build a Squad\n";
   Printf.printf "2. Search for a Player\n";
   Printf.printf "3. Search for a Team Sheet\n";
-  (* New Option *)
-  Printf.printf "4. Quit\n";
+  Printf.printf "4. Compare Players\n";
+  Printf.printf "5. Quit\n";
   Printf.printf "Enter your choice: ";
   match read_line () with
   | "" -> main_menu headers data csv_file
@@ -249,7 +278,10 @@ let rec main_menu headers data csv_file =
       | Some 3 ->
           search_for_team_sheet headers data;
           main_menu headers data csv_file
-      | Some 4 -> Printf.printf "Goodbye!\n"
+      | Some 4 ->
+          compare_players_menu ();
+          main_menu headers data csv_file
+      | Some 5 -> Printf.printf "Goodbye!\n"
       | Some _ ->
           Printf.printf "Invalid choice.\n";
           main_menu headers data csv_file)

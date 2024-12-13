@@ -430,6 +430,81 @@ let test_search_for_team_sheet_no_results _ =
   assert_equal 0 (List.length team_players)
     ~msg:"No players should be found for a non-existent team"
 
+let test_valid_player_comparison _ =
+  let result =
+    compare_two_players csv_file "Lionel Messi" "Cristiano Ronaldo"
+  in
+  assert_bool
+    "Comparing two valid players should return a tuple of player stats"
+    (match result with
+    | Some
+        ( (name1, ovr1, pac1, sho1, pas1, dri1, def1, phy1),
+          (name2, ovr2, pac2, sho2, pas2, dri2, def2, phy2) ) -> true
+    | _ -> false)
+
+let test_one_valid_one_invalid_player _ =
+  let result = compare_two_players csv_file "Lionel Messi" "Unknown Player" in
+  assert_bool "Comparing a valid player with an unknown player should fail"
+    (match result with
+    | None -> true
+    | _ -> false)
+
+let test_two_invalid_players _ =
+  let result =
+    compare_two_players csv_file "Unknown Player 1" "Unknown Player 2"
+  in
+  assert_bool "Comparing two unknown players should fail"
+    (match result with
+    | None -> true
+    | _ -> false)
+
+let test_case_insensitivity _ =
+  let result =
+    compare_two_players csv_file "lIonEl meSsi" "cristIano RonALDO"
+  in
+  assert_bool
+    "Player names with different cases should still return a valid comparison"
+    (match result with
+    | Some
+        ( (name1, ovr1, pac1, sho1, pas1, dri1, def1, phy1),
+          (name2, ovr2, pac2, sho2, pas2, dri2, def2, phy2) ) -> true
+    | _ -> false)
+
+let test_extra_whitespace _ =
+  let result =
+    compare_two_players csv_file "  Lionel Messi  " "  Cristiano Ronaldo  "
+  in
+  assert_bool
+    "Player names with extra whitespace should still return a valid comparison"
+    (match result with
+    | Some
+        ( (name1, ovr1, pac1, sho1, pas1, dri1, def1, phy1),
+          (name2, ovr2, pac2, sho2, pas2, dri2, def2, phy2) ) -> true
+    | _ -> false)
+
+let test_empty_input_one_player _ =
+  let result = compare_two_players csv_file "" "Cristiano Ronaldo" in
+  assert_bool "Comparing with an empty input for one player should fail"
+    (match result with
+    | None -> true
+    | _ -> false)
+
+let test_empty_input_both_players _ =
+  let result = compare_two_players csv_file "" "" in
+  assert_bool "Comparing with empty input for both players should fail"
+    (match result with
+    | None -> true
+    | _ -> false)
+
+let test_numeric_input_for_players _ =
+  let result = compare_two_players csv_file "1234" "5678" in
+  assert_bool
+    "Using numeric inputs for player names should fail if no players with \
+     these names exist"
+    (match result with
+    | None -> true
+    | _ -> false)
+
 let () =
   let test_cases = ref [] in
 
@@ -533,6 +608,15 @@ let () =
            "test_get_player_attributes" >:: test_get_player_attributes;
            "test_get_player_attributes_known_player"
            >:: test_get_player_attributes_known_player;
+           "test_valid_player_comparison" >:: test_valid_player_comparison;
+           "test_one_valid_one_invalid_player"
+           >:: test_one_valid_one_invalid_player;
+           "test_two_invalid_players" >:: test_two_invalid_players;
+           "test_case_insensitivity" >:: test_case_insensitivity;
+           "test_extra_whitespace" >:: test_extra_whitespace;
+           "test_empty_input_one_player" >:: test_empty_input_one_player;
+           "test_empty_input_both_players" >:: test_empty_input_both_players;
+           "test_numeric_input_for_players" >:: test_numeric_input_for_players;
          ]
          @ !test_cases
   in

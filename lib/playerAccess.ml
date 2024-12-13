@@ -129,3 +129,12 @@ let rec get_player_attributes csv_file player_name =
   with
   | Sys_error _ -> failwith ("The file '" ^ csv_file ^ "' does not exist.")
   | e -> raise e
+
+let compare_two_players csv_file player1 player2 =
+  try
+    let player1_stats = get_player_attributes csv_file player1 in
+    let player2_stats = get_player_attributes csv_file player2 in
+    Some (player1_stats, player2_stats)
+  with PlayerNotFound msg ->
+    Printf.printf "Error: %s\n" msg;
+    None
