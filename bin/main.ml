@@ -25,6 +25,8 @@ let formations =
       [ "GK"; "RB"; "CB"; "CB"; "LB"; "CDM"; "RM"; "CM"; "LM"; "ST"; "ST" ] );
   ]
 
+(** [player_career_summary csv_file player_name] prints a summary of the
+    player's career, including the teams played for and the positions played. *)
 let player_career_summary csv_file player_name =
   let _, _, _, _, _, _, _, _ = get_player_attributes csv_file player_name in
   let headers, data = SquadBuilder.load_csv csv_file in
@@ -62,6 +64,8 @@ let player_career_summary csv_file player_name =
   Printf.printf "Positions played: %s\n" (String.concat ", " positions_played);
   print_endline ""
 
+(** [ask_yes_no question] prompts the user to answer yes (y) or no (n) to the
+    given [question] and returns [true] for yes and [false] for no. *)
 let ask_yes_no question =
   Printf.printf "%s (y/n): " question;
   let rec loop () =
@@ -74,6 +78,9 @@ let ask_yes_no question =
   in
   loop ()
 
+(** [search_for_player csv_file] allows the user to search for a player by name
+    in the [csv_file] and prints their attributes and career summary. If the
+    player is not found, it suggests similar names. *)
 let rec search_for_player csv_file =
   print_endline "Enter player name:";
   let player_name = read_line () in
@@ -125,6 +132,8 @@ let rec search_for_player csv_file =
   | e ->
       Printf.printf "An unexpected error occurred: %s\n" (Printexc.to_string e)
 
+(** [build_squad_interactively headers data] allows the user to interactively
+    create a squad by applying filters and selecting a formation. *)
 let rec build_squad_interactively headers data =
   let filters = ref [] in
 
@@ -198,39 +207,36 @@ let rec build_squad_interactively headers data =
         build_squad_interactively headers data
       else Printf.printf "Returning to main menu.\n"
 
+(** [search_for_team_sheet headers data] allows the user to search for a team
+    sheet by team name and displays the top 20 highest OVR players for that
+    team. *)
 let rec search_for_team_sheet headers data =
   Printf.printf
     "Enter the name of the team (club or national team) to search for: ";
   let team_name = read_line () in
 
-  (* Custom player comparator by Name *)
   let compare_players p1 p2 =
     String.compare
       (List.nth p1 (SquadBuilder.find_index "Name" headers))
       (List.nth p2 (SquadBuilder.find_index "Name" headers))
   in
 
-  (* Filter for club players *)
   let players_from_club =
     SquadBuilder.apply_filters
       [ SquadBuilder.filter_by_club team_name ]
       headers data
   in
 
-  (* Filter for nation players *)
   let players_from_nation =
     SquadBuilder.apply_filters
       [ SquadBuilder.filter_by_nation team_name ]
       headers data
   in
 
-  (* Combine and remove duplicates from the player list *)
   let team_players = players_from_club @ players_from_nation in
 
-  (* Sort and remove duplicates from the combined list of players *)
   let unique_players = List.sort_uniq compare_players team_players in
 
-  (* Sort players by OVR descending *)
   let ovr_index = SquadBuilder.find_index "OVR" headers in
   let sorted_players =
     List.sort
@@ -241,7 +247,6 @@ let rec search_for_team_sheet headers data =
       unique_players
   in
 
-  (* Take only the top 20 players *)
   let top_20_players =
     List.fold_left
       (fun acc player -> if List.length acc < 20 then player :: acc else acc)
@@ -249,7 +254,6 @@ let rec search_for_team_sheet headers data =
     |> List.rev
   in
 
-  (* If no players are found, show an error and prompt to search again *)
   if List.length top_20_players = 0 then (
     Printf.printf "No players found for the team '%s'.\n" team_name;
     if ask_yes_no "Do you want to search for another team sheet?" then
@@ -263,6 +267,8 @@ let rec search_for_team_sheet headers data =
       search_for_team_sheet headers data
     else Printf.printf "Returning to main menu.\n")
 
+(** [compare_players_menu ()] allows the user to compare two players
+    side-by-side by entering their names and viewing their attributes. *)
 let compare_players_menu () =
   let csv_file = "data/all_players.csv" in
   Printf.printf "\n========== PLAYER COMPARISON ==========\n";
@@ -292,6 +298,9 @@ let compare_players_menu () =
     | None -> Printf.printf "Unable to compare players.\n"
   with PlayerNotFound msg -> Printf.printf "Error: %s\n" msg
 
+(** [main_menu headers data csv_file] displays the main menu for the application
+    and allows users to navigate through different options like squad building,
+    player search, team search, and player comparison. *)
 let rec main_menu headers data csv_file =
   Printf.printf "\n========== MAIN MENU ==========\n";
   Printf.printf "1. Build a Squad\n";
