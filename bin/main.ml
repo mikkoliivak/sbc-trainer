@@ -298,6 +298,54 @@ let compare_players_menu () =
     | None -> Printf.printf "Unable to compare players.\n"
   with PlayerNotFound msg -> Printf.printf "Error: %s\n" msg
 
+let rec get_filters_from_user () =
+  let filters = ref [] in
+
+  if ask_yes_no "Do you want to filter by nation?" then (
+    Printf.printf "Enter the nation: ";
+    let nation = read_line () in
+    filters := filter_by_nation nation :: !filters);
+
+  if ask_yes_no "Do you want to filter by OVR range?" then (
+    Printf.printf "Enter minimum OVR: ";
+    let min_ovr = read_int () in
+    Printf.printf "Enter maximum OVR: ";
+    let max_ovr = read_int () in
+    filters := filter_by_ovr_range min_ovr max_ovr :: !filters);
+
+  if ask_yes_no "Do you want to filter by league?" then (
+    Printf.printf "Enter the league: ";
+    let league = read_line () in
+    filters := filter_by_league league :: !filters);
+
+  if ask_yes_no "Do you want to filter by club?" then (
+    Printf.printf "Enter the club: ";
+    let club = read_line () in
+    filters := filter_by_club club :: !filters);
+
+  !filters
+
+let rec view_filtered_player_stats_interactively csv_file =
+  Printf.printf "\n========== FILTERED PLAYER STATISTICS ==========\n";
+  Printf.printf
+    "You will be asked to apply the same filters as when building a squad.\n\
+     After applying filters, the program will show the count, min OVR, max \
+     OVR, and avg OVR.\n\n";
+  let filters = get_filters_from_user () in
+  try
+    let stats = get_filtered_players_stats csv_file filters in
+    Printf.printf "\nStats for filtered players:\n";
+    Printf.printf "Count of players: %d\n" stats.count;
+    Printf.printf "Minimum OVR: %d\n" stats.min_ovr;
+    Printf.printf "Maximum OVR: %d\n" stats.max_ovr;
+    Printf.printf "Average OVR: %.2f\n" stats.avg_ovr
+  with e ->
+    Printf.printf "An unexpected error occurred: %s\n" (Printexc.to_string e);
+
+    if ask_yes_no "Do you want to view another filtered player statistic?" then
+      view_filtered_player_stats_interactively csv_file
+    else Printf.printf "Returning to main menu.\n"
+
 (** [main_menu headers data csv_file] displays the main menu for the application
     and allows users to navigate through different options like squad building,
     player search, team search, and player comparison. *)
@@ -307,7 +355,8 @@ let rec main_menu headers data csv_file =
   Printf.printf "2. Search for a Player\n";
   Printf.printf "3. Search for a Team Sheet\n";
   Printf.printf "4. Compare Players\n";
-  Printf.printf "5. Quit\n";
+  Printf.printf "5. View Filtered Player Statistics\n";
+  Printf.printf "6. Quit\n";
   Printf.printf "Enter your choice: ";
   match read_line () with
   | "" -> main_menu headers data csv_file
@@ -328,7 +377,10 @@ let rec main_menu headers data csv_file =
       | Some 4 ->
           compare_players_menu ();
           main_menu headers data csv_file
-      | Some 5 -> Printf.printf "Goodbye!\n"
+      | Some 5 ->
+          view_filtered_player_stats_interactively csv_file;
+          main_menu headers data csv_file
+      | Some 6 -> Printf.printf "Goodbye!\n"
       | Some _ ->
           Printf.printf "Invalid choice.\n";
           main_menu headers data csv_file)

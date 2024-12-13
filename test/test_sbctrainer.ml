@@ -505,6 +505,48 @@ let test_numeric_input_for_players _ =
     | None -> true
     | _ -> false)
 
+let test_get_filtered_players_stats_no_match _ =
+  (* Expecting failure if no players match the given filters *)
+  let filters = [ filter_by_nation "Atlantis" ] in
+  assert_raises (Failure "No players matched the given filters.") (fun () ->
+      get_filtered_players_stats csv_file filters)
+
+let test_get_filtered_players_stats_basic _ =
+  (* Using a nation filter that definitely returns some players *)
+  let filters = [ filter_by_nation "France" ] in
+  let stats = get_filtered_players_stats csv_file filters in
+  assert_bool "Count should be > 0 for French players" (stats.count > 0);
+  assert_bool "min_ovr should be >= 0" (stats.min_ovr >= 0);
+  assert_bool "max_ovr should be >= min_ovr" (stats.max_ovr >= stats.min_ovr);
+  assert_bool "avg_ovr should be between min and max"
+    (float_of_int stats.min_ovr <= stats.avg_ovr
+    && stats.avg_ovr <= float_of_int stats.max_ovr)
+
+let test_get_filtered_players_stats_combined_filters _ =
+  (* Multiple filters: France, OVR >= 80, from Premier League *)
+  let filters =
+    [
+      filter_by_nation "France";
+      filter_by_min_ovr 80;
+      filter_by_league "Premier League";
+    ]
+  in
+  let stats = get_filtered_players_stats csv_file filters in
+  assert_bool "Count should be > 0 for these filtered players" (stats.count > 0);
+  assert_bool "min_ovr should be >= 80" (stats.min_ovr >= 80);
+  assert_bool "max_ovr should be >= min_ovr" (stats.max_ovr >= stats.min_ovr)
+
+let test_get_filtered_players_stats_avg_calculation _ =
+  (* Check if average is calculated correctly *)
+  let filters = [ filter_by_min_ovr 90 ] in
+  let stats = get_filtered_players_stats csv_file filters in
+  (* If there are players >= 90 OVR *)
+  if stats.count > 0 then
+    (* Average should be between min and max *)
+    assert_bool "Average OVR should be valid"
+      (float_of_int stats.min_ovr <= stats.avg_ovr
+      && stats.avg_ovr <= float_of_int stats.max_ovr)
+
 let () =
   let test_cases = ref [] in
 
@@ -617,6 +659,14 @@ let () =
            "test_empty_input_one_player" >:: test_empty_input_one_player;
            "test_empty_input_both_players" >:: test_empty_input_both_players;
            "test_numeric_input_for_players" >:: test_numeric_input_for_players;
+           "test_get_filtered_players_stats_no_match"
+           >:: test_get_filtered_players_stats_no_match;
+           "test_get_filtered_players_stats_basic"
+           >:: test_get_filtered_players_stats_basic;
+           "test_get_filtered_players_stats_combined_filters"
+           >:: test_get_filtered_players_stats_combined_filters;
+           "test_get_filtered_players_stats_avg_calculation"
+           >:: test_get_filtered_players_stats_avg_calculation;
          ]
          @ !test_cases
   in

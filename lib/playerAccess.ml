@@ -138,3 +138,37 @@ let compare_two_players csv_file player1 player2 =
   with PlayerNotFound msg ->
     Printf.printf "Error: %s\n" msg;
     None
+
+type player_stats = {
+  count : int;
+  min_ovr : int;
+  max_ovr : int;
+  avg_ovr : float;
+}
+
+let get_filtered_players_stats csv_file filters =
+  (* Load the CSV file *)
+  let csv = Csv.load csv_file in
+  let headers = List.hd csv in
+  let data = List.tl csv in
+
+  (* Apply each filter sequentially *)
+  let filtered_players =
+    List.filter (fun p -> List.for_all (fun f -> f ~headers p) filters) data
+  in
+
+  if filtered_players = [] then failwith "No players matched the given filters."
+  else
+    let ovr_index = find_index "OVR" headers in
+    (* Extract OVRs *)
+    let ovrs =
+      List.map
+        (fun player -> int_of_string (List.nth player ovr_index))
+        filtered_players
+    in
+    let count = List.length ovrs in
+    let min_ovr = List.fold_left min max_int ovrs in
+    let max_ovr = List.fold_left max min_int ovrs in
+    let sum_ovr = List.fold_left ( + ) 0 ovrs in
+    let avg_ovr = float_of_int sum_ovr /. float_of_int count in
+    { count; min_ovr; max_ovr; avg_ovr }
